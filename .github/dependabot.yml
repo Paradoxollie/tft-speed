@@ -1,0 +1,48 @@
+version: 2
+updates:
+  # Mise à jour des GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "@me"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "🤖"
+      include: "scope"
+
+  # Mise à jour des dépendances NPM du backend-scraper
+  - package-ecosystem: "npm"
+    directory: "/backend-scraper"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "10:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "@me"
+    labels:
+      - "dependencies"
+      - "npm"
+    commit-message:
+      prefix: "📦"
+      include: "scope"
+    # Grouper les mises à jour mineures
+    groups:
+      minor-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Ignorer certaines dépendances si nécessaire
+    ignore:
+      # Exemple : ignorer les mises à jour majeures de Puppeteer
+      # - dependency-name: "puppeteer"
+      #   update-types: ["version-update:semver-major"] 
