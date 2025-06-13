@@ -1,5 +1,24 @@
+# Node
 node_modules/
-out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
 dist/
-*.log
+build/
+
+# Python
+__pycache__/
+*.pyc
+
+# Rust
+/target/
+
+# Misc
+.env
 .DS_Store
+.idea/
+.vscode/ 

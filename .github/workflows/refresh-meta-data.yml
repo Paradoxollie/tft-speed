@@ -1,0 +1,41 @@
+name: "Refresh Meta Data"
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Fetch latest TFT meta data
+        run: npm run fetch-meta
+
+      - name: Commit and push if data changed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Stage and commit only if there are changes in data/latest/
+          if git diff --quiet --exit-code data/latest; then
+            echo "No data changes to commit."
+            exit 0
+          fi
+
+          git add data/latest
+          git commit -m "chore(data): auto-update"
+          git push 

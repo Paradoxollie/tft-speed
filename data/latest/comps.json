@@ -1,0 +1,35 @@
+[
+  {
+    "name": "Arcanists",
+    "champions": [
+      "Ahri",
+      "VelKoz",
+      "Zyra",
+      "Lux",
+      "Morgana"
+    ],
+    "base_power": 3.8
+  },
+  {
+    "name": "Bruiser Reroll",
+    "champions": [
+      "Olaf",
+      "Illaoi",
+      "Zac",
+      "Renekton",
+      "Reksai"
+    ],
+    "base_power": 3.4
+  },
+  {
+    "name": "Sniper Flex",
+    "champions": [
+      "Caitlyn",
+      "Jhin",
+      "Aphelios",
+      "Senna",
+      "Gnar"
+    ],
+    "base_power": 3.6
+  }
+]

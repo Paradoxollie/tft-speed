@@ -1,0 +1,57 @@
+name: "Build & Release"
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      TAURI_ACTION_TARGET: windows-x64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate changelog since last tag
+        id: changelog
+        shell: bash
+        run: |
+          # Fetch complete history for tags
+          git fetch --tags --force --depth=1 || true
+          PREV_TAG=$(git describe --tags --abbrev=0 "${{ github.ref_name }}^" 2>/dev/null || echo "")
+          echo "Previous tag: $PREV_TAG"
+          if [ -z "$PREV_TAG" ]; then
+            RANGE=""  # first release
+          else
+            RANGE="$PREV_TAG..HEAD"
+          fi
+          LOG=$(git log --pretty=format:"* %s" --no-merges $RANGE)
+          LOG_ESCAPED=${LOG//$'\n'/%0A}
+          echo "changelog=$LOG_ESCAPED" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Build and Release with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_ACTION_TARGET: ${{ env.TAURI_ACTION_TARGET }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "${{ github.ref_name }}"
+          releaseBody: |
+            ## Changelog
+            ${{ steps.changelog.outputs.changelog }}
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: true 

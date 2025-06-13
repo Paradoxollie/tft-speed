@@ -1,0 +1,47 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "build": {
+    "distDir": "../dist",
+    "devPath": "http://localhost:5173",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": ""
+  },
+  "package": {
+    "productName": "TFT Speed",
+    "version": "0.1.0"
+  },
+  "tauri": {
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+      ],
+      "identifier": "com.tft.speed"
+    },
+    "windows": [
+      {
+        "title": "TFT Speed",
+        "width": 1280,
+        "height": 720,
+        "transparent": true,
+        "decorations": false,
+        "resizable": true,
+        "fullscreen": false,
+        "alwaysOnTop": true
+      }
+    ],
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": [
+        "https://github.com/Paradoxollie/tft-speed/releases/latest/download/latest.json"
+      ],
+      "pubkey": ""
+    }
+  }
+}
