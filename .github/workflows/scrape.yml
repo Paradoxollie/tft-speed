@@ -1,181 +1,60 @@
 name: TFT Meta Scraper
 
 on:
-  # Déclenche le workflow toutes les 12 heures
+  # Exécute le job toutes les 6 h
   schedule:
-    - cron: '0 */12 * * *'  # À 00:00 et 12:00 UTC tous les jours
-  
-  # Permet l'exécution manuelle depuis l'interface GitHub
+    - cron: '0 */6 * * *'
+  # Déclenchement manuel possible
   workflow_dispatch:
-  
-  # Déclenche aussi sur push pour les tests
+  # Relance si le code scraper ou le workflow change
   push:
-    branches: [ main, master ]
-    paths: 
+    branches: [main]
+    paths:
       - 'backend-scraper/**'
       - '.github/workflows/scrape.yml'
 
 jobs:
-  scrape-and-update:
+  scrape:
     runs-on: ubuntu-latest
-    
     permissions:
-      # Permissions nécessaires pour commit et push
-      contents: write
-      actions: read
-    
+      contents: write  # pour pouvoir pousser les changements
+
     steps:
-      - name: 🛒 Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
         with:
-          # Nécessaire pour pouvoir push les changements
-          token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
-      
+          fetch-depth: 0  # nécessaire pour pouvoir push
+
       - name: 🟢 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: 18
           cache: 'npm'
-          cache-dependency-path: 'backend-scraper/package-lock.json'
-      
-      - name: 📦 Install dependencies
-        working-directory: ./backend-scraper
+
+      - name: 📦 Install root deps
         run: npm ci
-      
-      - name: 🔧 Build TypeScript
-        working-directory: ./backend-scraper
-        run: npm run build
-      
-      - name: 🕷️ Run TFT Meta Scraper
-        working-directory: ./backend-scraper
-        run: npm start
-        env:
-          # Variables d'environnement pour Puppeteer en CI
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: false
-          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome-stable
-      
-      - name: 📊 Verify meta.json was generated
-        working-directory: ./backend-scraper
+
+      - name: 📦 Install scraper deps
+        run: npm --prefix backend-scraper ci
+
+      - name: 🔧 Build + run scraper
+        run: npm run scrape
+
+      - name: 📝 Commit & push meta.json if changed
         run: |
-          if [ -f "public/meta.json" ]; then
-            echo "✅ meta.json generated successfully"
-            echo "File size: $(du -h public/meta.json | cut -f1)"
-            echo "Compositions count: $(jq '.totalCompositions' public/meta.json)"
-            echo "Last updated: $(jq -r '.lastUpdated' public/meta.json)"
+          if [[ -n $(git status --porcelain) ]]; then
+            git config user.email "action@github.com"
+            git config user.name "GitHub Action"
+            git add backend-scraper/public/meta.json
+            git commit -m "🤖 ci: update meta.json [skip ci]"
+            git push
           else
-            echo "❌ meta.json not found"
-            exit 1
+            echo "No changes to commit."
           fi
-      
-      - name: 📝 Check for changes
-        id: verify-changed-files
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "changed=true" >> $GITHUB_OUTPUT
-            echo "✅ Changes detected in meta.json"
-          else
-            echo "changed=false" >> $GITHUB_OUTPUT
-            echo "ℹ️ No changes detected"
-          fi
-      
-      - name: 📤 Commit and push changes
-        if: steps.verify-changed-files.outputs.changed == 'true'
-        run: |
-          # Configuration Git
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          
-          # Ajout et commit des changements
-          git add backend-scraper/public/meta.json
-          
-          # Créer un message de commit informatif
-          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-          COMPOSITIONS_COUNT=$(jq '.totalCompositions' backend-scraper/public/meta.json)
-          
-          git commit -m "🤖 Auto-update TFT meta data
-          
-          - Updated: $TIMESTAMP
-          - Compositions: $COMPOSITIONS_COUNT
-          - Source: Automated scraping workflow
-          
-          [skip ci]"
-          
-          # Push vers le repository
-          git push
-      
-      - name: 📈 Upload meta.json as artifact
+
+      - name: 📤 Upload meta.json as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: tft-meta-data-${{ github.run_number }}
+          name: meta-json-${{ github.run_number }}
           path: backend-scraper/public/meta.json
           retention-days: 30
-      
-      - name: 💬 Comment on success (if manual trigger)
-        if: github.event_name == 'workflow_dispatch' && steps.verify-changed-files.outputs.changed == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const metaData = JSON.parse(fs.readFileSync('backend-scraper/public/meta.json', 'utf8'));
-            
-            const comment = `## 🎮 TFT Meta Update Complete!
-            
-            **📊 Summary:**
-            - **Total Compositions:** ${metaData.totalCompositions}
-            - **Last Updated:** ${metaData.lastUpdated}
-            - **Patch Version:** ${metaData.metadata.patchVersion || 'N/A'}
-            - **Data Source:** ${metaData.metadata.scrapedFrom}
-            
-            **🎯 Top Compositions:**
-            ${metaData.compositions.slice(0, 3).map((comp, i) => 
-              `${i + 1}. **${comp.name}** (Tier ${comp.tier}) - ${comp.winRate || 'N/A'}% WR`
-            ).join('\n')}
-            
-            The updated \`meta.json\` file has been committed to the repository.`;
-            
-            // Si c'est un déclenchement manuel, on peut créer une issue ou commenter
-            console.log(comment);
-      
-      - name: 🚨 Notify on failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            console.log('❌ TFT Meta Scraper workflow failed');
-            console.log('Check the logs for more details.');
-            
-            // Ici on pourrait envoyer une notification Slack, Discord, etc.
-            // ou créer une issue GitHub pour signaler l'échec 
-
-interface Recommendation {
-  composition: Composition;
-  matchScore: number;
-  competitionScore: number;
-  finalScore: number;
-  priorityChampions: Array<{
-    name: string;
-    priority: number;  // 1-5
-    reason: string;    // Explication
-  }>;
-} 
-
-const recommendations = await window.tftAPI.getRecommendations(gameState);
-
-// Pour chaque recommandation
-recommendations.forEach(rec => {
-  console.log(`Composition: ${rec.composition.name}`);
-  console.log(`Score de match: ${rec.matchScore}%`);
-  console.log(`Score de concurrence: ${rec.competitionScore}%`);
-  console.log(`Score final: ${rec.finalScore}%`);
-  
-  // Champions prioritaires
-  rec.priorityChampions.forEach(champ => {
-    console.log(`${champ.name} (Priorité ${champ.priority}): ${champ.reason}`);
-  });
-}); 
-
-publish:
-  provider: github
-  owner: VOTRE_NOM_UTILISATEUR
-  repo: tft-overlay 

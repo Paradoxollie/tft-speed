@@ -1,0 +1,31 @@
+{
+  "name": "tft-overlay",
+  "version": "1.0.0",
+  "description": "Assistant stratégique en temps réel pour Teamfight Tactics",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "scrape": "npm --prefix backend-scraper ci && npm --prefix backend-scraper run build && node backend-scraper/dist/index.js"
+  },
+  "keywords": [
+    "tft",
+    "overlay",
+    "electron"
+  ],
+  "author": "VotreNomOuPseudo",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron-forge/cli": "^7.4.0",
+    "@electron-forge/maker-squirrel": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.4.0",
+    "electron": "28.2.3"
+  },
+  "dependencies": {
+    "electron-is-dev": "^3.0.1",
+    "electron-squirrel-startup": "^1.0.0",
+    "puppeteer": "^21.11.0"
+  }
+}
