@@ -15,10 +15,13 @@ __pycache__/
 *.pyc
 
 # Rust
-/target/
+**/target/
 
 # Misc
 .env
 .DS_Store
 .idea/
-.vscode/ 
+.vscode/
+
+# Tauri
+src-tauri/Cargo.lock 
